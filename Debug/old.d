@@ -1,0 +1,1 @@
+old.o: ../old.cpp
