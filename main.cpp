@@ -9,6 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <iostream>
+#include <stdio.h>
 
 
 using namespace std;
@@ -265,35 +266,52 @@ int main(int argc, char *argv[]) {
 
 	std::vector<cv::DMatch>  matches;
 	img1 = imread("../IMG_4846.JPG", IMREAD_GRAYSCALE);
-	img2 = imread("../img3.JPG", IMREAD_GRAYSCALE);
+	resize(img1, img1, Size(480,360));
+	medianBlur(img1, img1, 3);
+
+	img2 = imread("../img1.JPG" , IMREAD_GRAYSCALE );
+	int j=1;
+	char * filename = new char[100];
+	while(img2.data)
+	{
+	    sprintf(filename, "../img%i.JPG",j);
+	    cout <<filename <<endl;
+	    img2 = imread(filename, IMREAD_GRAYSCALE );
+	    if(!img2.data )
+	    {
+	        // no more images
+	        break;
+	    }
+
+		resize(img2, img2, Size(480,360));
+		//resize(img1R, img1, size(), 0, 0, INTER_NEAREST);
+
+		medianBlur(img2, img2, 3);
+
+
+	    Mat fundemental = rmatcher.match(img1, img2, matches, img1_keypoints, img2_keypoints);
+
+	    	drawMatches(img1, img1_keypoints, img2, img2_keypoints, matches, fundemental);
+	    	      imwrite("res.png", fundemental);
+	    	//
+	    	//          double inlier_ratio = inliers1.size() * 1.0 / matched1.size();
+	    	        cout << "ORB Matching Results" << endl;
+	    	        cout << "*******************************" << endl;
+	    	        cout << "# Keypoints 1:                        \t" << img1_keypoints.size() << endl;
+	    	        cout << "# Keypoints 2:                        \t" << img2_keypoints.size() << endl;
+	    	        cout << "# Matches:                            \t" << matches.size() << endl;
+	    	//        cout << "# Inliers:                            \t" << inliers1.size() << endl;
+	    	//        cout << "# Inliers Ratio:                      \t" << inlier_ratio << endl;
+	    	        cout << endl;
+
+	    j++;
+	}
+	//img2 = imread("../IMG_4847.JPG", IMREAD_GRAYSCALE);
 
 	//equalizeHist(img1, img1);
 	//equalizeHist(img2, img2);
 
 
 
-
-	//resize(img1R, img1, size(), 0, 0, INTER_NEAREST);
-	resize(img2, img2, Size(480,360));
-	resize(img1, img1, Size(480,360));
-
-
-
-	medianBlur(img2, img2, 3);
-	medianBlur(img1, img1, 3);
-
-	Mat fundemental = rmatcher.match(img1, img2, matches, img1_keypoints, img2_keypoints);
-
-	drawMatches(img1, img1_keypoints, img2, img2_keypoints, matches, fundemental);
-	      imwrite("res.png", fundemental);
-	//
-	//          double inlier_ratio = inliers1.size() * 1.0 / matched1.size();
-	        cout << "ORB Matching Results" << endl;
-	        cout << "*******************************" << endl;
-	        cout << "# Keypoints 1:                        \t" << img1_keypoints.size() << endl;
-	        cout << "# Keypoints 2:                        \t" << img2_keypoints.size() << endl;
-	        cout << "# Matches:                            \t" << matches.size() << endl;
-	//        cout << "# Inliers:                            \t" << inliers1.size() << endl;
-	//        cout << "# Inliers Ratio:                      \t" << inlier_ratio << endl;
-	        cout << endl;
 }
+
