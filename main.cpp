@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <iostream>
 #include <stdio.h>
+#include <time.h>
 
 
 using namespace std;
@@ -30,8 +31,8 @@ class RobustMatcher {
      double distance; // min distance to epipolar
      double confidence; // confidence level (probability)
   public:
-     RobustMatcher() : ratio(0.87f), refineF(false),
-                       confidence(0.99), distance(1.0) {
+     RobustMatcher() : ratio(0.95f), refineF(false),
+                       confidence(0.99), distance(10.0) {
         // ORB is the default feature
 
      }
@@ -189,17 +190,17 @@ class RobustMatcher {
 
   // Match feature points using symmetry test and RANSAC
   // returns fundemental matrix
-  cv::Mat match(cv::Mat& image1,
+  cv::Mat match(Ptr<ORB>& orb,
+		  	  	cv::Mat& image1,
                 cv::Mat& image2, // input images
+				cv::Mat& descriptors1,
      // output matches and keypoints
      std::vector<cv::DMatch>& matches,
      std::vector<cv::KeyPoint>& keypoints1,
      std::vector<cv::KeyPoint>& keypoints2) {
 
-   cv::Mat descriptors1, descriptors2;
-   Ptr<ORB> orb = ORB::create();
+   cv::Mat descriptors2;
 
-   orb->detectAndCompute(image1, noArray(), keypoints1, descriptors1);
    orb->detectAndCompute(image2, noArray(), keypoints2, descriptors2);
 
    // 2. Match the two image descriptors
@@ -255,22 +256,29 @@ int main(int argc, char *argv[]) {
 
 
 	//Load input image detect keypoints
-
+	int64 t0 = cv::getTickCount();
 	cv::Mat img1;
 	std::vector<cv::KeyPoint> img1_keypoints;
-	cv::Mat img1_descriptors;
+	cv::Mat descriptors1;
 
 	cv::Mat img2;
-	std::vector<cv::KeyPoint> img2_keypoints;
-	cv::Mat img2_descriptors;
 
 	std::vector<cv::DMatch>  matches;
-	img1 = imread("../IMG_4846.JPG", IMREAD_GRAYSCALE);
+	img1 = imread("../img1.JPG", IMREAD_GRAYSCALE);
 	resize(img1, img1, Size(480,360));
 	medianBlur(img1, img1, 3);
 
-	img2 = imread("../img1.JPG" , IMREAD_GRAYSCALE );
-	int j=1;
+	Ptr<ORB> orb = ORB::create();
+
+	orb->detectAndCompute(img1, noArray(), img1_keypoints, descriptors1);
+
+
+	img2 = imread("../img2.JPG" , IMREAD_GRAYSCALE );
+	std::vector<cv::KeyPoint> img2_keypoints;
+
+
+
+	int j=2;
 	char * filename = new char[100];
 	while(img2.data)
 	{
@@ -286,10 +294,11 @@ int main(int argc, char *argv[]) {
 		resize(img2, img2, Size(480,360));
 		//resize(img1R, img1, size(), 0, 0, INTER_NEAREST);
 
+
 		medianBlur(img2, img2, 3);
 
 
-	    Mat fundemental = rmatcher.match(img1, img2, matches, img1_keypoints, img2_keypoints);
+	    Mat fundemental = rmatcher.match(orb, img1, img2, descriptors1, matches, img1_keypoints, img2_keypoints);
 
 	    	drawMatches(img1, img1_keypoints, img2, img2_keypoints, matches, fundemental);
 	    	      imwrite("res.png", fundemental);
@@ -304,10 +313,14 @@ int main(int argc, char *argv[]) {
 	    	//        cout << "# Inliers Ratio:                      \t" << inlier_ratio << endl;
 	    	        cout << endl;
 
-	    j++;
+	    	matches.clear();
+	    	img2_keypoints.clear();
+	    	j++;
 	}
 	//img2 = imread("../IMG_4847.JPG", IMREAD_GRAYSCALE);
-
+	int64 t1 = cv::getTickCount();
+	double secs = (t1-t0)/cv::getTickFrequency();
+	std::cout << "Times passed in seconds: " << secs << std::endl;
 	//equalizeHist(img1, img1);
 	//equalizeHist(img2, img2);
 
