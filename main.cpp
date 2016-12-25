@@ -33,7 +33,6 @@ class RobustMatcher {
   public:
      RobustMatcher() : ratio(0.95f), refineF(false),
                        confidence(0.99), distance(10.0) {
-        // ORB is the default feature
 
      }
 
@@ -105,6 +104,7 @@ class RobustMatcher {
                (*matchIterator2)[0].trainIdx &&
                (*matchIterator2)[0].queryIdx ==
                (*matchIterator1)[0].trainIdx) {
+
                // add symmetrical match
                  symMatches.push_back(
                    cv::DMatch((*matchIterator1)[0].queryIdx,
@@ -230,6 +230,7 @@ class RobustMatcher {
     // 4. Remove non-symmetrical matches
     std::vector<cv::DMatch> symMatches;
     symmetryTest(matches1,matches2,symMatches);
+
     // 5. Validate matches using RANSAC
     cv::Mat fundemental= ransacTest(symMatches,
                 keypoints1, keypoints2, matches);
@@ -264,16 +265,16 @@ int main(int argc, char *argv[]) {
 	cv::Mat img2;
 
 	std::vector<cv::DMatch>  matches;
-	img1 = imread("../img1.JPG", IMREAD_GRAYSCALE);
+	img1 = imread("./img1.jpg", IMREAD_GRAYSCALE);
 	resize(img1, img1, Size(480,360));
-	medianBlur(img1, img1, 3);
+	medianBlur(img1, img1, 5);
 
-	Ptr<ORB> orb = ORB::create();
+	Ptr<ORB> orb = ORB::create(500);
 
 	orb->detectAndCompute(img1, noArray(), img1_keypoints, descriptors1);
 
 
-	img2 = imread("../img2.JPG" , IMREAD_GRAYSCALE );
+	img2 = imread("./img2.jpg" , IMREAD_GRAYSCALE );
 	std::vector<cv::KeyPoint> img2_keypoints;
 
 
@@ -282,7 +283,7 @@ int main(int argc, char *argv[]) {
 	char * filename = new char[100];
 	while(img2.data)
 	{
-	    sprintf(filename, "../img%i.JPG",j);
+	    sprintf(filename, "./img%i.jpg",j);
 	    cout <<filename <<endl;
 	    img2 = imread(filename, IMREAD_GRAYSCALE );
 	    if(!img2.data )
@@ -295,13 +296,36 @@ int main(int argc, char *argv[]) {
 		//resize(img1R, img1, size(), 0, 0, INTER_NEAREST);
 
 
-		medianBlur(img2, img2, 3);
+		medianBlur(img2, img2, 5);
 
 
 	    Mat fundemental = rmatcher.match(orb, img1, img2, descriptors1, matches, img1_keypoints, img2_keypoints);
 
+	    int symMatchCount = 0;
+	    	float meanboy;
+	        Point2f point1;
+	        Point2f point2;
+	        for(size_t i = 0; i < matches.size(); i++)
+	        {
+	            point1 = img1_keypoints[matches[i].queryIdx].pt;
+	            point2 = img2_keypoints[matches[i].trainIdx].pt;
+	        	float gradient = (point2.y - point1.y) / (point2.x - point1.x);
+	        	meanboy += fabs(gradient);
+	        	std::cout << "gradient is " << gradient << std::endl;
+
+	            symMatchCount++;
+	            // do something with the best points...
+	        }
+	    	std::cout << "No of matches by shehel: " << symMatchCount << std::endl;
+	    	std::cout << "Mean" << meanboy / symMatchCount << std::endl;
+
+	    	std::cout << "Sym Match count: " << "(" << point1.x << ", " << point1.y << ") ("<<point2.x<<", "<<point2.y<<")"<<std::endl;
+
+	    std::string text = "res";
+	    text += std::to_string(j);
+	    text += ".png";
 	    	drawMatches(img1, img1_keypoints, img2, img2_keypoints, matches, fundemental);
-	    	      imwrite("res.png", fundemental);
+	    	      imwrite(text, fundemental);
 	    	//
 	    	//          double inlier_ratio = inliers1.size() * 1.0 / matched1.size();
 	    	        cout << "ORB Matching Results" << endl;
