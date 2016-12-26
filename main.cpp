@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <time.h>
+#include <algorithm>
 
 
 using namespace std;
@@ -231,6 +232,37 @@ class RobustMatcher {
     std::vector<cv::DMatch> symMatches;
     symmetryTest(matches1,matches2,symMatches);
 
+    const int symMatchCount = symMatches.size();
+   	    	//float meanboy;
+   	        Point2f point1;
+   	        Point2f point2;
+   	        float median;
+   	     vector<float> gradientList;
+		 for(size_t i = 0; i < symMatchCount; i++)
+   	        {
+   	            point1 = keypoints1[symMatches[i].queryIdx].pt;
+   	            point2 = keypoints2[symMatches[i].trainIdx].pt;
+   	        	float gradient = (point2.y - point1.y) / (point2.x - point1.x);
+   	        	gradientList.push_back (fabs(gradient));
+   	        	std::cout << "gradient is " << fabs(gradient) << std::endl;
+
+   	            // do something with the best points...
+   	        }
+		         std::sort(gradientList.begin(), gradientList.end());
+		         if(gradientList.size() % 2 == 0)
+		                 median = (gradientList[gradientList.size()/2 - 1] + gradientList[gradientList.size()/2]) / 2;
+		         else
+		                 median = gradientList[gradientList.size()/2];
+
+		         size_t n = gradientList.size() / 2;
+		             nth_element(gradientList.begin(), gradientList.begin()+n, gradientList.end());
+		    	    	std::cout << "new Median method " << gradientList[n] << std::endl;
+
+   	    	std::cout << "No of matches by shehel: " << gradientList[35] << " size " << symMatchCount << std::endl;
+   	    	std::cout << "Median" << median << std::endl;
+
+   	// std::cout << "Sym Match count: " << "(" << point1.x << ", " << point1.y << ") ("<<point2.x<<", "<<point2.y<<")"<<std::endl;
+
     // 5. Validate matches using RANSAC
     cv::Mat fundemental= ransacTest(symMatches,
                 keypoints1, keypoints2, matches);
@@ -301,25 +333,6 @@ int main(int argc, char *argv[]) {
 
 	    Mat fundemental = rmatcher.match(orb, img1, img2, descriptors1, matches, img1_keypoints, img2_keypoints);
 
-	    int symMatchCount = 0;
-	    	float meanboy;
-	        Point2f point1;
-	        Point2f point2;
-	        for(size_t i = 0; i < matches.size(); i++)
-	        {
-	            point1 = img1_keypoints[matches[i].queryIdx].pt;
-	            point2 = img2_keypoints[matches[i].trainIdx].pt;
-	        	float gradient = (point2.y - point1.y) / (point2.x - point1.x);
-	        	meanboy += fabs(gradient);
-	        	std::cout << "gradient is " << gradient << std::endl;
-
-	            symMatchCount++;
-	            // do something with the best points...
-	        }
-	    	std::cout << "No of matches by shehel: " << symMatchCount << std::endl;
-	    	std::cout << "Mean" << meanboy / symMatchCount << std::endl;
-
-	    	std::cout << "Sym Match count: " << "(" << point1.x << ", " << point1.y << ") ("<<point2.x<<", "<<point2.y<<")"<<std::endl;
 
 	    std::string text = "res";
 	    text += std::to_string(j);
