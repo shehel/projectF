@@ -13,6 +13,7 @@
 #include <time.h>
 #include <algorithm>
 
+#define PI 3.14159265
 
 using namespace std;
 using namespace cv;
@@ -80,7 +81,7 @@ class RobustMatcher {
     return removed;
   }
 
-  // Insert symmetrical matches in symMatches vector
+  // Insert symmetrical matches in matches vector
   void symmetryTest(
       const std::vector<std::vector<cv::DMatch> >& matches1,
       const std::vector<std::vector<cv::DMatch> >& matches2,
@@ -105,6 +106,8 @@ class RobustMatcher {
                (*matchIterator2)[0].trainIdx &&
                (*matchIterator2)[0].queryIdx ==
                (*matchIterator1)[0].trainIdx) {
+
+
 
                // add symmetrical match
                  symMatches.push_back(
@@ -232,34 +235,44 @@ class RobustMatcher {
     std::vector<cv::DMatch> symMatches;
     symmetryTest(matches1,matches2,symMatches);
 
-    const int symMatchCount = symMatches.size();
+    /*const int symMatchCount = symMatches.size();
    	    	//float meanboy;
    	        Point2f point1;
    	        Point2f point2;
    	        float median;
-   	     vector<float> gradientList;
+   	        float greatest = 0;
+   	        float lowest = 0;
+   	     vector<float> angleList;
 		 for(size_t i = 0; i < symMatchCount; i++)
    	        {
    	            point1 = keypoints1[symMatches[i].queryIdx].pt;
    	            point2 = keypoints2[symMatches[i].trainIdx].pt;
-   	        	float gradient = (point2.y - point1.y) / (point2.x - point1.x);
-   	        	gradientList.push_back (fabs(gradient));
-   	        	std::cout << "gradient is " << fabs(gradient) << std::endl;
+   	        	float angle = ((point2.y - point1.y) / (point2.x - point1.x));
 
+   	        	if (angle > greatest) greatest = angle;
+   	        	if (angle < lowest) lowest = angle;
+
+   	        	angleList.push_back (angle);
+   	        	std::cout << "points " << "(" << point1.x << "," <<point1.y<<") (" << point2.x << ","<<point2.y<<") angle:" <<angle << std::endl;
+
+   	        	//if (fabs(angle)>0.36 | fabs(angle) < 0.34)
+   	        		//symMatches.erase(symMatches.begin()+i);
    	            // do something with the best points...
    	        }
-		         std::sort(gradientList.begin(), gradientList.end());
-		         if(gradientList.size() % 2 == 0)
-		                 median = (gradientList[gradientList.size()/2 - 1] + gradientList[gradientList.size()/2]) / 2;
+
+		         std::sort(angleList.begin(), angleList.end());
+		         if(angleList.size() % 2 == 0)
+		                 median = (angleList[angleList.size()/2 - 1] + angleList[angleList.size()/2]) / 2;
 		         else
-		                 median = gradientList[gradientList.size()/2];
+		                 median = angleList[angleList.size()/2];
 
-		         size_t n = gradientList.size() / 2;
-		             nth_element(gradientList.begin(), gradientList.begin()+n, gradientList.end());
-		    	    	std::cout << "new Median method " << gradientList[n] << std::endl;
+		         size_t n = angleList.size() / 2;
+		             nth_element(angleList.begin(), angleList.begin()+n, angleList.end());
+		    	    	std::cout << "new Median method " << angleList[n] << std::endl;
+		    	    	std::cout << "greatest " << greatest << "|| lowest "<< lowest << std::endl;
 
-   	    	std::cout << "No of matches by shehel: " << gradientList[35] << " size " << symMatchCount << std::endl;
-   	    	std::cout << "Median" << median << std::endl;
+   	    	std::cout << "No of matches by shehel: " << angleList[35] << " size " << symMatchCount << std::endl;
+   	    	std::cout << "Median" << median << std::endl;*/
 
    	// std::cout << "Sym Match count: " << "(" << point1.x << ", " << point1.y << ") ("<<point2.x<<", "<<point2.y<<")"<<std::endl;
 
@@ -332,6 +345,76 @@ int main(int argc, char *argv[]) {
 
 
 	    Mat fundemental = rmatcher.match(orb, img1, img2, descriptors1, matches, img1_keypoints, img2_keypoints);
+
+	    const int symMatchCount = matches.size();
+	   	    	//float meanboy;
+	   	        Point2f point1;
+	   	        Point2f point2;
+	   	        float median;
+	   	        float meanBoy=0;
+	   	        float greatest = 0;
+	   	        float lowest = 0;
+	   	        int count = 0;
+	   	     vector<float> angleList;
+			 for(auto i = matches.begin(); i != matches.end();)
+	   	        {
+	   	            point1 = img1_keypoints[matches[count].queryIdx].pt;
+	   	            point2 = img2_keypoints[matches[count].trainIdx].pt;
+	   	        	float deltaY = ((360-point2.y) - (360-point1.y));
+	   	        	float deltaX = (point2.x - point1.x);
+
+	   	        	float angle = atan2 (deltaY, deltaX) * 180 / PI;
+	   	        	cout << "ORB Matching Results" << angle <<endl;
+	   	        	if (angle > greatest) greatest = angle;
+	   	        	if (angle < lowest) lowest = angle;
+	   	        	meanBoy += angle;
+	   	        	angleList.push_back (angle);
+	   	        	std::cout << "points " << "(" << point1.x << "," <<360-point1.y<<") (" << point2.x << ","<<360-point2.y<<") angle:" <<angle << std::endl;
+
+	   	        	if (angle>-20 | angle < 120)
+	   	        		matches.erase(i);
+
+	   	        	//{i++; count++;}
+	   	        	else {
+	   	        		++i;
+	   	        		count++;
+	   	        	}
+	   	            // do something with the best points...
+	   	        }
+	   	    	std::cout << "Mean" << meanBoy/symMatchCount << std::endl;
+			 std::sort(angleList.begin(), angleList.end());
+						         if(angleList.size() % 2 == 0)
+						                 median = (angleList[angleList.size()/2 - 1] + angleList[angleList.size()/2]) / 2;
+						         else
+						                 median = angleList[angleList.size()/2];
+
+						         size_t n = angleList.size() / 2;
+						             nth_element(angleList.begin(), angleList.begin()+n, angleList.end());
+						    	    	std::cout << "new Median method " << angleList[n] << std::endl;
+						    	    	std::cout << "greatest " << greatest << "|| lowest "<< lowest << std::endl;
+
+				   	    	std::cout << "No of matches by shehel: " << angleList[35] << " size " << symMatchCount << std::endl;
+				   	    	std::cout << "Median" << median << std::endl;
+	   	    	std::cout << "____________________________________________"<< std::endl;
+
+			 for(size_t i = 0; i < matches.size(); i++)
+	   	        {
+	   	            point1 = img1_keypoints[matches[i].queryIdx].pt;
+	   	            point2 = img2_keypoints[matches[i].trainIdx].pt;
+	   	        	float angle = ((360-point2.y) - (360-point1.y)) / (point2.x - point1.x);
+
+	   	        	if (angle > greatest) greatest = angle;
+	   	        	if (angle < lowest) lowest = angle;
+
+	   	        	//angleList.push_back (angle);
+	   	        	std::cout << "points " << "(" << point1.x << "," <<360-point1.y<<") (" << point2.x << ","<<360-point2.y<<") angle:" <<angle << std::endl;
+
+	   	        	//if (angle>0.5 | angle < -0.7)
+	   	        		//matches.erase(matches.begin()+i);
+	   	            // do something with the best points...
+	   	        }
+
+
 
 
 	    std::string text = "res";
